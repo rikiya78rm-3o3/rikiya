@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogOut, Settings, Users, BarChart } from "lucide-react";
+import { signOut } from "@/app/auth/actions";
 
 export default function AdminLayout({
     children,
@@ -20,20 +21,23 @@ export default function AdminLayout({
                             <BarChart className="w-4 h-4" />
                             ダッシュボード
                         </Link>
-                        <Link href="/admin/master" className="hover:text-primary flex items-center gap-2 transition-colors">
-                            <Users className="w-4 h-4" />
-                            参加者名簿
+                        <Link href="/admin/master" className="text-foreground/70 hover:text-primary transition-colors">
+                            名簿管理(Master)
                         </Link>
-                        <Link href="/admin/settings/smtp" className="hover:text-primary flex items-center gap-2 transition-colors">
-                            <Settings className="w-4 h-4" />
-                            送信設定
+                        <Link href="/admin/settings" className="text-foreground/70 hover:text-primary transition-colors">
+                            イベント設定
+                        </Link>
+                        <Link href="/admin/settings/smtp" className="text-foreground/70 hover:text-primary transition-colors">
+                            SMTP設定
                         </Link>
                     </nav>
 
-                    <button className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-md transition-colors flex items-center gap-2">
-                        <LogOut className="w-4 h-4" />
-                        ログアウト
-                    </button>
+                    <form action={signOut}>
+                        <button type="submit" className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-md transition-colors flex items-center gap-2">
+                            <LogOut className="w-4 h-4" />
+                            ログアウト
+                        </button>
+                    </form>
                 </div>
             </header>
 

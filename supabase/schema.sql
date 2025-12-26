@@ -14,8 +14,8 @@ create table public.tenants (
   smtp_password text, -- Store encrypted values here using pgcrypto functions
   smtp_from_email text, -- Force 'From' address
 
-  event_code text, -- For staff login (e.g. '1224')
-  staff_passcode text, -- For staff login (e.g. '9999')
+  -- Owner (Supabase Auth User)
+  owner_id uuid references auth.users(id),
 
   created_at timestamptz default now(),
   updated_at timestamptz default now()
