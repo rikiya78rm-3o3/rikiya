@@ -141,13 +141,14 @@ export default function EventSettingsPage() {
                                 <th className="px-6 py-4">作成日 (Date)</th>
                                 <th className="px-6 py-4">コード (Code)</th>
                                 <th className="px-6 py-4">イベント名 (Name)</th>
+                                <th className="px-6 py-4">申し込みURL</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={3} className="p-8 text-center">読み込み中...</td></tr>
+                                <tr><td colSpan={4} className="p-8 text-center">読み込み中...</td></tr>
                             ) : events.length === 0 ? (
-                                <tr><td colSpan={3} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
+                                <tr><td colSpan={4} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
                             ) : (
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-muted/10 transition-colors">
@@ -159,6 +160,23 @@ export default function EventSettingsPage() {
                                         </td>
                                         <td className="px-6 py-4 font-bold">
                                             {event.name}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2 items-center">
+                                                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                                                    {typeof window !== 'undefined' ? window.location.origin : ''}/apply?event_code={event.event_code}
+                                                </code>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/apply?event_code=${event.event_code}`);
+                                                        alert('URLをコピーしました');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
