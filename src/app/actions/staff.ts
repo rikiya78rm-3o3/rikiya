@@ -16,7 +16,7 @@ const SESSION_COOKIE_NAME = 'staff_session';
 // Staff Login
 export async function staffLogin(formData: FormData) {
   const supabase = await createClient();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const companyCode = formData.get('company_code') as string;
   const eventCode = formData.get('event_code') as string;
@@ -73,14 +73,14 @@ export async function staffLogin(formData: FormData) {
 
 // Staff Logout
 export async function staffLogout() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
   redirect('/staff');
 }
 
 // Get Session logic
 export async function getStaffSession(): Promise<StaffSession | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
   if (!sessionCookie) return null;
 
@@ -89,4 +89,64 @@ export async function getStaffSession(): Promise<StaffSession | null> {
   } catch (e) {
     return null;
   }
+}
+
+// Check-in Function (QR Scan)
+export async function checkIn(token: string) {
+  const supabase = await createClient();
+
+  // 1. Get Staff Session
+  const session = await getStaffSession();
+  if (!session) {
+    return { success: false, error: 'セッションが無効です。再ログインしてください。' };
+  }
+
+  // 2. Find Participation by Token
+  const { data: participation, error: findError } = await supabase
+    .from('participations')
+    .select(`
+      id,
+      status,
+      checked_in_at,
+      master_data (
+        name
+      )
+    `)
+    .eq('checkin_token', token)
+    .eq('event_id', session.eventId)
+    .single();
+
+  if (findError || !participation) {
+    return { success: false, error: '無効なQRコードです。', errorCode: 'INVALID_TOKEN' };
+  }
+
+  // 3. Check if Already Checked In
+  if (participation.status === 'checked_in') {
+    return {
+      success: false,
+      error: '既にチェックイン済みです。',
+      errorCode: 'ALREADY_CHECKED_IN',
+      participant: { name: (participation.master_data as any)?.name }
+    };
+  }
+
+  // 4. Update Status to Checked In
+  const { error: updateError } = await supabase
+    .from('participations')
+    .update({
+      status: 'checked_in',
+      checked_in_at: new Date().toISOString()
+    })
+    .eq('id', participation.id);
+
+  if (updateError) {
+    console.error('Check-in Update Error:', updateError);
+    return { success: false, error: 'チェックインの更新に失敗しました。' };
+  }
+
+  return {
+    success: true,
+    message: 'チェックイン完了',
+    participant: { name: (participation.master_data as any)?.name }
+  };
 }
