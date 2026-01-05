@@ -134,21 +134,22 @@ export default function EventSettingsPage() {
                     </h2>
                 </div>
 
-                <div className="bg-white rounded-lg shadow border border-border overflow-hidden">
+                <div className="bg-white rounded-lg shadow border border-border overflow-hidden overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-muted/50 text-foreground/70 uppercase text-xs">
                             <tr>
-                                <th className="px-6 py-4">作成日 (Date)</th>
-                                <th className="px-6 py-4">コード (Code)</th>
-                                <th className="px-6 py-4">イベント名 (Name)</th>
+                                <th className="px-6 py-4">作成日</th>
+                                <th className="px-6 py-4">コード</th>
+                                <th className="px-6 py-4">イベント名</th>
+                                <th className="px-6 py-4">スタッフパスコード</th>
                                 <th className="px-6 py-4">申し込みURL</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={4} className="p-8 text-center">読み込み中...</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center">読み込み中...</td></tr>
                             ) : events.length === 0 ? (
-                                <tr><td colSpan={4} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
                             ) : (
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-muted/10 transition-colors">
@@ -163,7 +164,24 @@ export default function EventSettingsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2 items-center">
-                                                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                                                <code className="text-xs bg-yellow-50 border border-yellow-200 px-2 py-1 rounded font-mono font-bold">
+                                                    {event.staff_passcode}
+                                                </code>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(event.staff_passcode);
+                                                        alert('パスコードをコピーしました');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2 items-center">
+                                                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate max-w-xs">
                                                     {typeof window !== 'undefined' ? window.location.origin : ''}/apply?event_code={event.event_code}
                                                 </code>
                                                 <Button

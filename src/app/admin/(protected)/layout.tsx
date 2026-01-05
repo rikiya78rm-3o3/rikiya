@@ -1,12 +1,24 @@
+'use client';
+
 import Link from "next/link";
-import { LogOut, Settings, Users, BarChart } from "lucide-react";
+import { LogOut, Settings, Users, BarChart, Building2 } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
+import { useEffect, useState } from "react";
+import { getTenantInfo } from "@/app/actions/dashboard";
 
 export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const [tenantInfo, setTenantInfo] = useState<any>(null);
+
+    useEffect(() => {
+        getTenantInfo().then(data => {
+            setTenantInfo(data);
+        });
+    }, []);
+
     return (
         <div className="min-h-screen flex flex-col bg-secondary/50">
             {/* Admin Header */}
@@ -32,12 +44,22 @@ export default function AdminLayout({
                         </Link>
                     </nav>
 
-                    <form action={signOut}>
-                        <button type="submit" className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-md transition-colors flex items-center gap-2">
-                            <LogOut className="w-4 h-4" />
-                            ログアウト
-                        </button>
-                    </form>
+                    <div className="flex items-center gap-4">
+                        {tenantInfo && (
+                            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                <Building2 className="w-4 h-4 text-blue-600" />
+                                <span className="text-xs font-bold text-blue-700">
+                                    企業コード: <span className="font-mono">{tenantInfo.company_code}</span>
+                                </span>
+                            </div>
+                        )}
+                        <form action={signOut}>
+                            <button type="submit" className="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-md transition-colors flex items-center gap-2">
+                                <LogOut className="w-4 h-4" />
+                                ログアウト
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </header>
 
