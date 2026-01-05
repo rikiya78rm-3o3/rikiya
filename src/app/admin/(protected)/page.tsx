@@ -19,7 +19,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         isSuperAdmin().then(isAdmin => {
             if (isAdmin) {
-                router.push('/admin/super/create-tenant');
+                router.push('/admin/super/tenants');
             }
         });
     }, [router]);
