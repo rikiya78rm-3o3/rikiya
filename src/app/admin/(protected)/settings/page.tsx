@@ -143,13 +143,14 @@ export default function EventSettingsPage() {
                                 <th className="px-6 py-4">イベント名</th>
                                 <th className="px-6 py-4">スタッフパスコード</th>
                                 <th className="px-6 py-4">申し込みURL</th>
+                                <th className="px-6 py-4">スタッフ用QRスキャン</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={5} className="p-8 text-center">読み込み中...</td></tr>
+                                <tr><td colSpan={6} className="p-8 text-center">読み込み中...</td></tr>
                             ) : events.length === 0 ? (
-                                <tr><td colSpan={5} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
+                                <tr><td colSpan={6} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
                             ) : (
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-muted/10 transition-colors">
@@ -190,6 +191,23 @@ export default function EventSettingsPage() {
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`${window.location.origin}/apply?event_code=${event.event_code}`);
                                                         alert('URLをコピーしました');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2 items-center">
+                                                <code className="text-xs bg-green-50 border border-green-200 px-2 py-1 rounded flex-1 truncate max-w-xs">
+                                                    {typeof window !== 'undefined' ? window.location.origin : ''}/staff/scan?event_code={event.event_code}
+                                                </code>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/staff/scan?event_code=${event.event_code}`);
+                                                        alert('スキャンURLをコピーしました');
                                                     }}
                                                 >
                                                     <Copy className="w-3 h-3" />
