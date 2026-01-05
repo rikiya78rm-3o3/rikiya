@@ -158,3 +158,59 @@ export async function getAllTenants() {
 
     return tenantsWithEmails;
 }
+
+// Delete tenant and all associated data
+export async function deleteTenant(tenantId: string) {
+    // 1. Check super admin permission
+    const isAdmin = await isSuperAdmin();
+    if (!isAdmin) {
+        return { success: false, error: '権限がありません。' };
+    }
+
+    try {
+        const supabase = await createClient();
+
+        // 2. Get tenant info
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('owner_id')
+            .eq('id', tenantId)
+            .single();
+
+        if (!tenant) {
+            return { success: false, error: 'テナントが見つかりません。' };
+        }
+
+        // 3. Use service role client for deletion
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
+        // 4. Delete all related data (cascade will handle most of this)
+        // Delete tenant record (this will cascade to events, master_data, participations, mail_jobs)
+        const { error: tenantError } = await serviceClient
+            .from('tenants')
+            .delete()
+            .eq('id', tenantId);
+
+        if (tenantError) {
+            console.error('Tenant Delete Error:', tenantError);
+            return { success: false, error: 'テナント削除に失敗しました: ' + tenantError.message };
+        }
+
+        // 5. Delete auth user
+        const { error: authError } = await serviceClient.auth.admin.deleteUser(tenant.owner_id);
+
+        if (authError) {
+            console.error('Auth Delete Error:', authError);
+            // Tenant is already deleted, but log the auth error
+            return { success: true, warning: 'テナントは削除されましたが、認証ユーザーの削除に失敗しました。' };
+        }
+
+        return { success: true };
+
+    } catch (err: any) {
+        console.error('Unexpected error:', err);
+        return { success: false, error: 'システムエラーが発生しました: ' + err.message };
+    }
+}
