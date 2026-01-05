@@ -1,10 +1,11 @@
 'use client';
 
 import Link from "next/link";
-import { LogOut, Settings, Users, BarChart, Building2 } from "lucide-react";
+import { LogOut, Settings, Users, BarChart, Building2, List, PlusCircle } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { useEffect, useState } from "react";
 import { getTenantInfo } from "@/app/actions/dashboard";
+import { isSuperAdmin } from "@/app/actions/super-admin";
 
 export default function AdminLayout({
     children,
@@ -12,10 +13,14 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const [tenantInfo, setTenantInfo] = useState<any>(null);
+    const [isSuper, setIsSuper] = useState(false);
 
     useEffect(() => {
         getTenantInfo().then(data => {
             setTenantInfo(data);
+        });
+        isSuperAdmin().then(result => {
+            setIsSuper(result);
         });
     }, []);
 
@@ -25,30 +30,45 @@ export default function AdminLayout({
             <header className="bg-white border-b border-border sticky top-0 z-10">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="/admin" className="text-xl font-bold text-primary tracking-wide">
-                        チケットレス管理
+                        {isSuper ? '企業管理画面' : 'チケットレス管理'}
                     </Link>
 
-                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-foreground/70">
-                        <Link href="/admin" className="hover:text-primary flex items-center gap-2 transition-colors">
-                            <BarChart className="w-4 h-4" />
-                            ダッシュボード
-                        </Link>
-                        <Link href="/admin/master" className="text-foreground/70 hover:text-primary transition-colors">
-                            名簿管理(Master)
-                        </Link>
-                        <Link href="/admin/settings" className="text-foreground/70 hover:text-primary transition-colors">
-                            イベント設定
-                        </Link>
-                        <Link href="/admin/settings/smtp" className="text-foreground/70 hover:text-primary transition-colors">
-                            SMTP設定
-                        </Link>
-                        <Link href="/admin/account" className="text-foreground/70 hover:text-primary transition-colors">
-                            アカウント
-                        </Link>
-                    </nav>
+                    {isSuper ? (
+                        // Super Admin Navigation
+                        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-foreground/70">
+                            <Link href="/admin/super/tenants" className="hover:text-primary flex items-center gap-2 transition-colors">
+                                <List className="w-4 h-4" />
+                                企業一覧
+                            </Link>
+                            <Link href="/admin/super/create-tenant" className="text-foreground/70 hover:text-primary transition-colors">
+                                <PlusCircle className="w-4 h-4 inline mr-1" />
+                                企業作成
+                            </Link>
+                        </nav>
+                    ) : (
+                        // Regular Admin Navigation
+                        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-foreground/70">
+                            <Link href="/admin" className="hover:text-primary flex items-center gap-2 transition-colors">
+                                <BarChart className="w-4 h-4" />
+                                ダッシュボード
+                            </Link>
+                            <Link href="/admin/master" className="text-foreground/70 hover:text-primary transition-colors">
+                                名簿管理(Master)
+                            </Link>
+                            <Link href="/admin/settings" className="text-foreground/70 hover:text-primary transition-colors">
+                                イベント設定
+                            </Link>
+                            <Link href="/admin/settings/smtp" className="text-foreground/70 hover:text-primary transition-colors">
+                                SMTP設定
+                            </Link>
+                            <Link href="/admin/account" className="text-foreground/70 hover:text-primary transition-colors">
+                                アカウント
+                            </Link>
+                        </nav>
+                    )}
 
                     <div className="flex items-center gap-4">
-                        {tenantInfo && (
+                        {!isSuper && tenantInfo && (
                             <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
                                 <Building2 className="w-4 h-4 text-blue-600" />
                                 <span className="text-xs font-bold text-blue-700">

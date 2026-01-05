@@ -127,3 +127,34 @@ export async function autoGenerateCompanyCode() {
 
     return code; // Return anyway after 10 attempts
 }
+
+// Get all tenants with their login emails (for super admin)
+export async function getAllTenants() {
+    const supabase = await createClient();
+
+    // Get all tenants
+    const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, name, company_code, owner_id, created_at')
+        .order('created_at', { ascending: false });
+
+    if (!tenants) return [];
+
+    // Get user emails for each tenant using service role
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
+    const tenantsWithEmails = await Promise.all(
+        tenants.map(async (tenant) => {
+            const { data: userData } = await serviceClient.auth.admin.getUserById(tenant.owner_id);
+
+            return {
+                ...tenant,
+                email: userData?.user?.email || 'N/A'
+            };
+        })
+    );
+
+    return tenantsWithEmails;
+}
