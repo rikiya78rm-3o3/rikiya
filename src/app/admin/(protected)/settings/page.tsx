@@ -48,6 +48,46 @@ export default function EventSettingsPage() {
     return (
         <div className="space-y-12 max-w-4xl mx-auto">
 
+            {/* Staff QR Scan URL Section */}
+            <section className="space-y-4">
+                <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 bg-green-100 rounded-lg">
+                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <h2 className="text-lg font-bold text-green-800 mb-1">
+                                📱 スタッフ用QRスキャンURL
+                            </h2>
+                            <p className="text-sm text-green-700 mb-3">
+                                このURLをスタッフに共有してください。イベント当日の受付で使用します。
+                            </p>
+                            <div className="flex gap-2 items-center">
+                                <code className="text-sm bg-white border border-green-300 px-4 py-2 rounded-lg flex-1 font-mono">
+                                    {typeof window !== 'undefined' ? window.location.origin : ''}/staff/scan
+                                </code>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/staff/scan`);
+                                        alert('スタッフ用URLをコピーしました');
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                    <Copy className="w-4 h-4 mr-2" />
+                                    コピー
+                                </Button>
+                            </div>
+                            <p className="text-xs text-green-600 mt-2">
+                                💡 スタッフはこのURLにアクセス後、イベントコードとスタッフパスコードを入力してQRスキャンを開始します
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            </section>
+
             {/* 1. Create Event Section */}
             <section className="space-y-4">
                 <div>
@@ -143,14 +183,13 @@ export default function EventSettingsPage() {
                                 <th className="px-6 py-4">イベント名</th>
                                 <th className="px-6 py-4">スタッフパスコード</th>
                                 <th className="px-6 py-4">申し込みURL</th>
-                                <th className="px-6 py-4">スタッフ用QRスキャン</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={6} className="p-8 text-center">読み込み中...</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center">読み込み中...</td></tr>
                             ) : events.length === 0 ? (
-                                <tr><td colSpan={6} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
                             ) : (
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-muted/10 transition-colors">
@@ -191,23 +230,6 @@ export default function EventSettingsPage() {
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`${window.location.origin}/apply?event_code=${event.event_code}`);
                                                         alert('URLをコピーしました');
-                                                    }}
-                                                >
-                                                    <Copy className="w-3 h-3" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex gap-2 items-center">
-                                                <code className="text-xs bg-green-50 border border-green-200 px-2 py-1 rounded flex-1 truncate max-w-xs">
-                                                    {typeof window !== 'undefined' ? window.location.origin : ''}/staff/scan?event_code={event.event_code}
-                                                </code>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`${window.location.origin}/staff/scan?event_code=${event.event_code}`);
-                                                        alert('スキャンURLをコピーしました');
                                                     }}
                                                 >
                                                     <Copy className="w-3 h-3" />
