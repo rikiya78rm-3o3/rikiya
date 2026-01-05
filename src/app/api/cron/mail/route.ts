@@ -61,12 +61,12 @@ export async function GET(request: Request) {
                 },
             });
 
-            // 4. Send Mail
+            // 4. Send Mail (HTML format for QR code support)
             await transporter.sendMail({
                 from: `"${tenant.name}" <${tenant.smtp_from_email}>`,
                 to: job.to_email,
                 subject: job.subject,
-                text: job.body,
+                html: job.body, // Changed from 'text' to 'html'
             });
 
             // 5. Update Status -> Sent

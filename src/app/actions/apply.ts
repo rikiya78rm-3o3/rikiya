@@ -79,15 +79,43 @@ export async function submitApplication(formData: FormData) {
             return { success: false, error: 'データ保存に失敗しました。' };
         }
 
-        // 7. Queue Email
+        // 7. Queue Email with QR Code
         const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
         const ticketUrl = `${baseUrl}/apply/complete?token=${participation.checkin_token}`;
+
+        // Generate QR code as data URL
+        const QRCode = require('qrcode');
+        const qrDataUrl = await QRCode.toDataURL(ticketUrl, { width: 300, margin: 2 });
+
+        const emailBody = `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">🎫 受付完了のお知らせ</h1>
+    </div>
+    <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb;">
+        <p style="font-size: 18px; font-weight: bold;">${employee.name} 様</p>
+        <p><strong>${event.name}</strong> へのお申し込みありがとうございます。</p>
+        <p>当日は以下のQRコードを受付にてご提示ください。</p>
+        <div style="background: white; padding: 20px; text-align: center; margin: 20px 0; border: 2px solid #e5e7eb; border-radius: 8px;">
+            <img src="${qrDataUrl}" alt="QR Code" style="max-width: 300px; width: 100%;" />
+        </div>
+        <p style="text-align: center; font-size: 14px; color: #6b7280;">QRコードが表示されない場合は下記URLをクリック</p>
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="${ticketUrl}" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">チケットを表示</a>
+        </div>
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-top: 20px;">
+            <p style="margin: 0; font-size: 14px;"><strong>⚠️ 注意</strong><br>このQRコードは当日の受付に必要です。保存してください。</p>
+        </div>
+    </div>
+</body>
+</html>`;
 
         await supabase.from('mail_jobs').insert({
             tenant_id: tenant.id,
             to_email: email,
             subject: `【${event.name}】受付完了のお知らせ`,
-            body: `${employee.name} 様\n\nお申し込みありがとうございます。\n当日は以下のURLよりQRコードを表示し、受付にてご提示ください。\n\nチケットURL:\n${ticketUrl}`,
+            body: emailBody,
             status: 'pending'
         });
 
