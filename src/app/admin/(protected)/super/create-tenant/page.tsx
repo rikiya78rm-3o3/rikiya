@@ -151,7 +151,6 @@ export default function CreateTenantPage() {
                         name="company_name"
                         placeholder="例: 株式会社サンプル"
                         required
-                        icon={<Building2 className="w-4 h-4" />}
                     />
 
                     <div>
@@ -165,7 +164,6 @@ export default function CreateTenantPage() {
                                 value={companyCode}
                                 onChange={(e) => setCompanyCode(e.target.value)}
                                 required
-                                icon={<Hash className="w-4 h-4" />}
                             />
                             <Button
                                 type="button"
@@ -183,7 +181,6 @@ export default function CreateTenantPage() {
                         type="email"
                         placeholder="例: admin@example.com"
                         required
-                        icon={<Mail className="w-4 h-4" />}
                     />
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -198,8 +195,8 @@ export default function CreateTenantPage() {
 
                     {message && (
                         <div className={`p-4 rounded-lg text-sm ${message.type === 'success'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                             {message.text}
                         </div>
