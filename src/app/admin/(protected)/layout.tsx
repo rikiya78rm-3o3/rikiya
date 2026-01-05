@@ -42,6 +42,9 @@ export default function AdminLayout({
                         <Link href="/admin/settings/smtp" className="text-foreground/70 hover:text-primary transition-colors">
                             SMTP設定
                         </Link>
+                        <Link href="/admin/account" className="text-foreground/70 hover:text-primary transition-colors">
+                            アカウント
+                        </Link>
                     </nav>
 
                     <div className="flex items-center gap-4">
