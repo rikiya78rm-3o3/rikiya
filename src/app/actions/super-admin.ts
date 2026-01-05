@@ -66,9 +66,9 @@ export async function createTenantAccount(formData: FormData) {
             return { success: false, error: 'アカウント作成に失敗しました: ' + authError?.message };
         }
 
-        // 4. Create tenant record
-        const supabase = await createClient();
-        const { error: tenantError } = await supabase
+
+        // 4. Create tenant record (using service role to bypass RLS)
+        const { error: tenantError } = await serviceClient
             .from('tenants')
             .insert({
                 name: companyName,
