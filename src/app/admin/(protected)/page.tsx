@@ -5,12 +5,24 @@ import { Users, CheckCircle, Clock, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getEvents, getEventStats } from "@/app/actions/dashboard";
+import { isSuperAdmin } from "@/app/actions/super-admin";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
+    const router = useRouter();
     const [events, setEvents] = useState<any[]>([]);
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    // Check if super admin and redirect
+    useEffect(() => {
+        isSuperAdmin().then(isAdmin => {
+            if (isAdmin) {
+                router.push('/admin/super/create-tenant');
+            }
+        });
+    }, [router]);
 
     useEffect(() => {
         getEvents().then(data => {
