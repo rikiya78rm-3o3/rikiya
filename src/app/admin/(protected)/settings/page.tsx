@@ -223,7 +223,7 @@ export default function EventSettingsPage() {
                                         <td className="px-6 py-4 font-mono font-bold text-primary">
                                             {event.event_code}
                                         </td>
-                                        <td className="px-6 py-4 font-bold">
+                                        <td className="px-6 py-4 font-bold min-w-[200px]">
                                             {event.name}
                                         </td>
                                         <td className="px-6 py-4">
