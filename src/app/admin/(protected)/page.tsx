@@ -96,24 +96,24 @@ export default function AdminDashboard() {
                         </select>
                     </Card>
 
-                    {/* Stats Grid */}
+                    {/* Stats Grid - DEMO DATA */}
                     {stats && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <StatsCard
                                 title="総申し込み数"
-                                value={stats.total.toString()}
+                                value="248"
                                 icon={<Users className="w-6 h-6 text-blue-500" />}
                                 subtext="Total Participants"
                             />
                             <StatsCard
                                 title="チェックイン済み"
-                                value={stats.checkedIn.toString()}
+                                value="187"
                                 icon={<CheckCircle className="w-6 h-6 text-green-500" />}
-                                subtext={stats.total > 0 ? `来場率 ${Math.round((stats.checkedIn / stats.total) * 100)}%` : ''}
+                                subtext="来場率 75%"
                             />
                             <StatsCard
                                 title="未チェックイン"
-                                value={stats.pending.toString()}
+                                value="61"
                                 icon={<Clock className="w-6 h-6 text-orange-500" />}
                                 subtext="Pending Check-in"
                             />
