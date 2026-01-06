@@ -99,14 +99,66 @@ export async function importMasterDataCSV(rows: { employee_id: string, name: str
         name: r.name
     }));
 
-    // Use Upsert for bulk import
-    const { error } = await supabase.from('master_data').upsert(payload, {
-        onConflict: 'tenant_id, employee_id'
-    });
+    // Get existing employee IDs to filter out duplicates
+    const { data: existingRecords } = await supabase
+        .from('master_data')
+        .select('employee_id')
+        .eq('tenant_id', tenant.id);
+
+    const existingIds = new Set(existingRecords?.map(r => r.employee_id) || []);
+
+    // Filter out existing records - only insert new ones
+    const newRecords = payload.filter(r => !existingIds.has(r.employee_id));
+
+    if (newRecords.length === 0) {
+        return { success: true, message: '新規データがありません。すべて登録済みです。', inserted: 0 };
+    }
+
+    // Insert only new records
+    const { error } = await supabase.from('master_data').insert(newRecords);
 
     if (error) {
         console.error('Import Error:', error);
         return { success: false, error: `インポートエラー: ${error.message} (Code: ${error.code})` };
+    }
+
+    return { success: true, inserted: newRecords.length, skipped: payload.length - newRecords.length };
+}
+
+// Delete master data record
+export async function deleteMasterData(id: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'ログインしてください。' };
+
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+    if (!tenant) return { success: false, error: 'テナントが見つかりません。' };
+
+    // Verify record belongs to tenant
+    const { data: record } = await supabase
+        .from('master_data')
+        .select('id')
+        .eq('id', id)
+        .eq('tenant_id', tenant.id)
+        .single();
+
+    if (!record) return { success: false, error: 'データが見つかりません。' };
+
+    // Delete record
+    const { error } = await supabase
+        .from('master_data')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Delete Error:', error);
+        return { success: false, error: '削除に失敗しました。' };
     }
 
     return { success: true };

@@ -3,10 +3,10 @@
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { getMasterData, addMasterDataRecord, importMasterDataCSV } from "@/app/actions/master";
+import { getMasterData, addMasterDataRecord, importMasterDataCSV, deleteMasterData } from "@/app/actions/master";
 import { parseCSV } from "@/utils/csvParser";
 import { useEffect, useState, useRef } from "react";
-import { Plus, Upload, CheckCircle, XCircle, User, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Upload, CheckCircle, XCircle, User, Loader2, AlertCircle, Trash2 } from "lucide-react";
 
 export default function MasterDataPage() {
     const [data, setData] = useState<any[]>([]);
@@ -18,6 +18,7 @@ export default function MasterDataPage() {
     const [isImporting, setIsImporting] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState<string | null>(null);
 
     // Load Master Data (Global for Tenant)
     useEffect(() => {
@@ -43,6 +44,22 @@ export default function MasterDataPage() {
             setRefreshKey(k => k + 1); // Refresh list
             (document.getElementById('add-form') as HTMLFormElement)?.reset();
         }
+    };
+
+    // Handle Delete
+    const handleDelete = async (id: string, name: string) => {
+        if (!confirm(`「${name}」を削除しますか？`)) return;
+
+        setDeleting(id);
+        const result = await deleteMasterData(id);
+
+        if (result.success) {
+            setRefreshKey(k => k + 1); // Refresh list
+        } else {
+            alert('削除に失敗しました: ' + result.error);
+        }
+
+        setDeleting(null);
     };
 
     // Handle CSV Import
@@ -139,13 +156,14 @@ export default function MasterDataPage() {
                                     <th className="px-6 py-3">ID</th>
                                     <th className="px-6 py-3">氏名</th>
                                     <th className="px-6 py-3 text-right">登録日</th>
+                                    <th className="px-6 py-3 text-center">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {loading && data.length === 0 ? (
-                                    <tr><td colSpan={3} className="p-8 text-center">読み込み中...</td></tr>
+                                    <tr><td colSpan={4} className="p-8 text-center">読み込み中...</td></tr>
                                 ) : data.length === 0 ? (
-                                    <tr><td colSpan={3} className="p-8 text-center text-foreground/50">データがありません。</td></tr>
+                                    <tr><td colSpan={4} className="p-8 text-center text-foreground/50">データがありません。</td></tr>
                                 ) : (
                                     data.map((item) => (
                                         <tr key={item.id} className="bg-white hover:bg-muted/10">
@@ -153,6 +171,21 @@ export default function MasterDataPage() {
                                             <td className="px-6 py-4">{item.name}</td>
                                             <td className="px-6 py-4 text-right text-xs text-foreground/50">
                                                 {new Date(item.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(item.id, item.name)}
+                                                    disabled={deleting === item.id}
+                                                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                >
+                                                    {deleting === item.id ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="w-4 h-4" />
+                                                    )}
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))
