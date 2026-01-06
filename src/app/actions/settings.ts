@@ -148,3 +148,50 @@ export async function updateSMTPSettings(formData: FormData) {
 
     return { success: true };
 }
+
+// Delete event and all related data
+export async function deleteEvent(eventId: string) {
+    const supabase = await createClient();
+
+    // 1. Get User
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'ログインしてください。' };
+
+    // 2. Get Tenant for User
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+    if (!tenant) return { success: false, error: 'テナントが見つかりません。' };
+
+    // 3. Verify event belongs to tenant
+    const { data: event } = await supabase
+        .from('events')
+        .select('id')
+        .eq('id', eventId)
+        .eq('tenant_id', tenant.id)
+        .single();
+
+    if (!event) return { success: false, error: 'イベントが見つかりません。' };
+
+    // 4. Delete related participations (cascade will handle this, but explicit for clarity)
+    await supabase
+        .from('participations')
+        .delete()
+        .eq('event_id', eventId);
+
+    // 5. Delete event (this will cascade delete participations if foreign key is set)
+    const { error: deleteError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+    if (deleteError) {
+        console.error('Delete Event Error:', deleteError);
+        return { success: false, error: 'イベント削除に失敗しました。' };
+    }
+
+    return { success: true };
+}

@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { createEvent, getEvents } from "@/app/actions/settings";
+import { createEvent, getEvents, deleteEvent } from "@/app/actions/settings";
 import { useEffect, useState } from "react";
-import { Plus, List, Loader2, Copy, Check } from "lucide-react";
+import { Plus, List, Loader2, Copy, Check, Trash2, AlertTriangle } from "lucide-react";
 
 export default function EventSettingsPage() {
     const [events, setEvents] = useState<any[]>([]);
@@ -13,6 +13,8 @@ export default function EventSettingsPage() {
     const [submitting, setSubmitting] = useState(false);
     const [createdEvent, setCreatedEvent] = useState<any>(null); // To show URL after creation
     const [error, setError] = useState<string | null>(null);
+    const [deleteModal, setDeleteModal] = useState<{ show: boolean, event: any | null }>({ show: false, event: null });
+    const [deleting, setDeleting] = useState(false);
 
     const fetchEvents = () => {
         getEvents().then(data => {
@@ -43,6 +45,27 @@ export default function EventSettingsPage() {
             setError(result.error || '作成に失敗しました。');
         }
         setSubmitting(false);
+    };
+
+    const handleDeleteClick = (event: any) => {
+        setDeleteModal({ show: true, event });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteModal.event) return;
+
+        setDeleting(true);
+        const result = await deleteEvent(deleteModal.event.id);
+
+        if (result.success) {
+            alert('イベントを削除しました。');
+            setDeleteModal({ show: false, event: null });
+            fetchEvents(); // Reload list
+        } else {
+            alert('削除に失敗しました: ' + result.error);
+        }
+
+        setDeleting(false);
     };
 
     return (
@@ -183,13 +206,14 @@ export default function EventSettingsPage() {
                                 <th className="px-6 py-4">イベント名</th>
                                 <th className="px-6 py-4">スタッフパスコード</th>
                                 <th className="px-6 py-4">申し込みURL</th>
+                                <th className="px-6 py-4 text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={5} className="p-8 text-center">読み込み中...</td></tr>
+                                <tr><td colSpan={6} className="p-8 text-center">読み込み中...</td></tr>
                             ) : events.length === 0 ? (
-                                <tr><td colSpan={5} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
+                                <tr><td colSpan={6} className="p-8 text-center text-foreground/50">イベントはまだありません。</td></tr>
                             ) : (
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-muted/10 transition-colors">
@@ -236,6 +260,16 @@ export default function EventSettingsPage() {
                                                 </Button>
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => handleDeleteClick(event)}
+                                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -243,6 +277,58 @@ export default function EventSettingsPage() {
                     </table>
                 </div>
             </section>
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <AlertTriangle className="w-8 h-8 text-red-600" />
+                            <h2 className="text-xl font-bold text-red-600">イベント削除の確認</h2>
+                        </div>
+
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                            <p className="text-sm text-red-800 font-bold mb-2">
+                                ⚠️ この操作は取り消せません
+                            </p>
+                            <p className="text-sm text-red-700">
+                                以下のイベントとすべての関連データが完全に削除されます：
+                            </p>
+                            <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
+                                <li>イベント情報</li>
+                                <li>参加者データ</li>
+                                <li>メール送信履歴</li>
+                            </ul>
+                        </div>
+
+                        <div className="bg-gray-100 rounded-lg p-4 mb-6">
+                            <p className="text-sm text-foreground/60 mb-1">削除対象イベント</p>
+                            <p className="font-bold text-lg">{deleteModal.event?.name}</p>
+                            <p className="text-sm text-foreground/60 mt-1">
+                                イベントコード: <span className="font-mono font-bold">{deleteModal.event?.event_code}</span>
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button
+                                variant="secondary"
+                                onClick={() => setDeleteModal({ show: false, event: null })}
+                                disabled={deleting}
+                                className="flex-1"
+                            >
+                                キャンセル
+                            </Button>
+                            <Button
+                                onClick={handleDeleteConfirm}
+                                disabled={deleting}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                            >
+                                {deleting ? '削除中...' : '削除する'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
