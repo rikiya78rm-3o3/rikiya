@@ -101,19 +101,19 @@ export default function AdminDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <StatsCard
                                 title="総申し込み数"
-                                value="248"
+                                value={stats.total.toString()}
                                 icon={<Users className="w-6 h-6 text-blue-500" />}
                                 subtext="Total Participants"
                             />
                             <StatsCard
                                 title="チェックイン済み"
-                                value="187"
+                                value={stats.checkedIn.toString()}
                                 icon={<CheckCircle className="w-6 h-6 text-green-500" />}
-                                subtext="来場率 75%"
+                                subtext={stats.total > 0 ? `来場率 ${Math.round((stats.checkedIn / stats.total) * 100)}%` : ''}
                             />
                             <StatsCard
                                 title="未チェックイン"
-                                value="61"
+                                value={stats.pending.toString()}
                                 icon={<Clock className="w-6 h-6 text-orange-500" />}
                                 subtext="Pending Check-in"
                             />
