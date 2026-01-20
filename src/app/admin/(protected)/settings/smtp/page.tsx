@@ -7,9 +7,18 @@ import { Save, ShieldCheck, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getSMTPSettings, updateSMTPSettings } from "@/app/actions/settings";
 
+interface SMTPSettings {
+    smtp_host: string;
+    smtp_port: number;
+    smtp_user: string;
+    smtp_password?: string;
+    smtp_from_email: string;
+    smtp_from_name: string;
+}
+
 export default function SmtpSettingsPage() {
     const [isLoading, setIsLoading] = useState(false);
-    const [settings, setSettings] = useState<any>(null);
+    const [settings, setSettings] = useState<SMTPSettings | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Load existing settings
@@ -94,19 +103,28 @@ export default function SmtpSettingsPage() {
 
                     <hr className="border-border" />
 
-                    <Input
-                        label="送信元アドレス (From)"
-                        placeholder="noreply@example.com"
-                        name="smtp_from_email"
-                        type="email"
-                        defaultValue={settings?.smtp_from_email || ''}
-                        required
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Input
+                            label="送信者名 (表示名)"
+                            placeholder="イベント事務局"
+                            name="smtp_from_name"
+                            defaultValue={settings?.smtp_from_name || ''}
+                            required
+                        />
+                        <Input
+                            label="送信元アドレス (From)"
+                            placeholder="noreply@example.com"
+                            name="smtp_from_email"
+                            type="email"
+                            defaultValue={settings?.smtp_from_email || ''}
+                            required
+                        />
+                    </div>
 
                     {message && (
                         <div className={`p-4 rounded-lg text-sm ${message.type === 'success'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                             {message.text}
                         </div>

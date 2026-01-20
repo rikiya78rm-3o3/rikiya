@@ -86,7 +86,7 @@ export async function getStaffSession(): Promise<StaffSession | null> {
 
   try {
     return JSON.parse(sessionCookie.value);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -101,42 +101,119 @@ export async function checkIn(token: string) {
     return { success: false, error: 'セッションが無効です。再ログインしてください。' };
   }
 
-  // 2. Find Participation by Token
-  const { data: participation, error: findError } = await supabase
+  // 2. Extract token/id from URL if necessary
+  let actualToken = token;
+  if (token.includes('/checkin/')) {
+    // legacy support: extract ID from URL
+    actualToken = token.split('/checkin/').pop() || token;
+  }
+
+  // 2. Find Participation by Token, ID, or Member ID
+  let { data: participation, error: findError } = await supabase
     .from('participations')
     .select(`
       id,
       status,
       checked_in_at,
-      master_data (
+      ticket_type,
+      start_time,
+      re_entry_history,
+      name,
+      event_id,
+      events (
         name
+      ),
+      master_data (
+        name,
+        employee_id
       )
     `)
-    .eq('checkin_token', token)
-    .eq('event_id', session.eventId)
+    .or(`checkin_token.eq.${actualToken},id.eq.${actualToken}`)
     .single();
 
+  // If not found by token/ID, try searching by Member ID (company_code or master_data.employee_id) within the current event
   if (findError || !participation) {
-    return { success: false, error: '無効なQRコードです。', errorCode: 'INVALID_TOKEN' };
+    // 1. First, search by company_code in participations (covers both members and guests)
+    const { data: companyParts, error: companyError } = await supabase
+      .from('participations')
+      .select(`
+        id, status, checked_in_at, ticket_type, start_time, re_entry_history, name, event_id,
+        events ( name ),
+        master_data ( name, employee_id )
+      `)
+      .eq('event_id', session.eventId)
+      .eq('company_code', actualToken)
+      .order('status', { ascending: false }); // Prioritize 'pending' over 'checked_in' if lucky, but we'll filter
+
+    if (!companyError && companyParts && companyParts.length > 0) {
+      // Pick the first 'pending' one, or just the first if all checked in
+      participation = companyParts.find(p => p.status === 'pending') || companyParts[0];
+      findError = null;
+    } else {
+      // 2. Fallback: Search by employee_id via master_data join (if not captured in company_code)
+      const { data: memberParts, error: memberError } = await supabase
+        .from('participations')
+        .select(`
+          id, status, checked_in_at, ticket_type, start_time, re_entry_history, name, event_id,
+          events ( name ),
+          master_data!inner ( name, employee_id )
+        `)
+        .eq('event_id', session.eventId)
+        .eq('master_data.employee_id', actualToken);
+
+      if (!memberError && memberParts && memberParts.length > 0) {
+        participation = memberParts.find(p => p.status === 'pending') || memberParts[0];
+        findError = null;
+      }
+    }
   }
 
-  // 3. Check if Already Checked In
-  if (participation.status === 'checked_in') {
+  if (findError || !participation) {
+    console.warn(`Check-in: Token not found [${actualToken}]`);
+    return { success: false, error: '該当する参加者が見つかりません。', errorCode: 'NOT_FOUND' };
+  }
+
+  // Check Event Mismatch
+  if (participation.event_id !== session.eventId) {
+    const eventName = (participation.events as unknown as { name: string })?.name || '別のイベント';
     return {
       success: false,
-      error: '既にチェックイン済みです。',
-      errorCode: 'ALREADY_CHECKED_IN',
-      participant: { name: (participation.master_data as any)?.name }
+      error: `このチケットは「${eventName}」のものです。現在のイベント（${session.eventName}）では使用できません。`,
+      errorCode: 'EVENT_MISMATCH'
     };
   }
 
-  // 4. Update Status to Checked In
+  // Get Name (Guest or Master Data)
+  const masterData = participation.master_data as unknown as { name: string } | null;
+  const participantName = participation.name || (Array.isArray(masterData) ? masterData[0]?.name : masterData?.name) || '未登録';
+
+  // 3. Handle Entry Type
+  const isFirstEntry = !participation.checked_in_at;
+  const entryType = isFirstEntry ? 'first' : 're_entry';
+
+  // 4. Update Status and History
+  const now = new Date().toISOString();
+  const updates: {
+    status: string;
+    updated_at: string;
+    checked_in_at?: string;
+    re_entry_history?: string[];
+  } = {
+    status: 'checked_in',
+    updated_at: now
+  };
+
+  if (isFirstEntry) {
+    updates.checked_in_at = now;
+  } else {
+    // Append to re-entry history
+    const history = Array.isArray(participation.re_entry_history) ? participation.re_entry_history : [];
+    updates.re_entry_history = [...history, now];
+  }
+
   const { error: updateError } = await supabase
     .from('participations')
-    .update({
-      status: 'checked_in',
-      checked_in_at: new Date().toISOString()
-    })
+    .update(updates)
     .eq('id', participation.id);
 
   if (updateError) {
@@ -146,7 +223,12 @@ export async function checkIn(token: string) {
 
   return {
     success: true,
-    message: 'チェックイン完了',
-    participant: { name: (participation.master_data as any)?.name }
+    message: isFirstEntry ? 'チェックイン完了' : '途中入場（再入場）',
+    participant: {
+      name: participantName,
+      ticketType: participation.ticket_type,
+      startTime: participation.start_time,
+      entryType: entryType as 'first' | 're_entry'
+    }
   };
 }

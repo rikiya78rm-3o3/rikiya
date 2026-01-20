@@ -1,18 +1,23 @@
 'use client';
 
 import Link from "next/link";
-import { LogOut, Settings, Users, BarChart, Building2, List, PlusCircle } from "lucide-react";
+import { LogOut, List, PlusCircle, BarChart, Building2 } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { useEffect, useState } from "react";
 import { getTenantInfo } from "@/app/actions/dashboard";
 import { isSuperAdmin } from "@/app/actions/super-admin";
+
+interface TenantInfo {
+    name: string;
+    company_code: string;
+}
 
 export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const [tenantInfo, setTenantInfo] = useState<any>(null);
+    const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
     const [isSuper, setIsSuper] = useState(false);
 
     useEffect(() => {
@@ -57,6 +62,9 @@ export default function AdminLayout({
                             </Link>
                             <Link href="/admin/settings" className="text-foreground/70 hover:text-primary transition-colors">
                                 イベント設定
+                            </Link>
+                            <Link href="/admin/tickets/import" className="text-foreground/70 hover:text-primary transition-colors">
+                                チケット一括登録
                             </Link>
                             <Link href="/admin/settings/smtp" className="text-foreground/70 hover:text-primary transition-colors">
                                 SMTP設定

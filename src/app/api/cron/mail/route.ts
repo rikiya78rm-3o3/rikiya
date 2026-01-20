@@ -1,14 +1,15 @@
-import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-export async function GET(request: Request) {
-    // 1. Basic Security (Optional: Check a secret header or key from env)
-    const { searchParams } = new URL(request.url);
-    // const cronSecret = searchParams.get('key');
-    // if (cronSecret !== process.env.CRON_SECRET) { ... }
+export async function GET(request: NextRequest) {
+    // 1. Basic Security
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // 2. Fetch Pending Jobs with Tenant Info
     const { data: jobs, error } = await supabase
@@ -25,11 +26,12 @@ export async function GET(request: Request) {
                 smtp_port,
                 smtp_user,
                 smtp_password,
-                smtp_from_email
+                smtp_from_email,
+                smtp_from_name
             )
         `)
         .eq('status', 'pending')
-        .limit(10);
+        .limit(30);
 
     if (error) {
         console.error('Mail Processor: Fetch Error', error);
@@ -44,7 +46,15 @@ export async function GET(request: Request) {
 
     for (const job of jobs) {
         try {
-            const tenant = job.tenants as any;
+            const tenant = job.tenants as unknown as {
+                name: string;
+                smtp_host: string;
+                smtp_port: number;
+                smtp_user: string;
+                smtp_password: string;
+                smtp_from_email: string;
+                smtp_from_name: string;
+            };
 
             if (!tenant || !tenant.smtp_host || !tenant.smtp_user || !tenant.smtp_password) {
                 throw new Error('テナントのSMTP設定が不完全です。設定画面を確認してください。');
@@ -62,8 +72,9 @@ export async function GET(request: Request) {
             });
 
             // 4. Send Mail (HTML format for QR code support)
+            const fromName = tenant.smtp_from_name || tenant.name;
             await transporter.sendMail({
-                from: `"${tenant.name}" <${tenant.smtp_from_email}>`,
+                from: `"${fromName}" <${tenant.smtp_from_email}>`,
                 to: job.to_email,
                 subject: job.subject,
                 html: job.body, // Changed from 'text' to 'html'
@@ -80,20 +91,21 @@ export async function GET(request: Request) {
 
             results.push({ id: job.id, status: 'sent' });
 
-        } catch (err: any) {
-            console.error(`Job ${job.id} failed:`, err);
+        } catch (err) {
+            const error = err as Error;
+            console.error(`Job ${job.id} failed:`, error);
 
             // Update Status -> Failed
             await supabase
                 .from('mail_jobs')
                 .update({
                     status: 'failed',
-                    error_message: err.message,
+                    error_message: error.message,
                     processed_at: new Date().toISOString()
                 })
                 .eq('id', job.id);
 
-            results.push({ id: job.id, status: 'failed', error: err.message });
+            results.push({ id: job.id, status: 'failed', error: error.message });
         }
     }
 

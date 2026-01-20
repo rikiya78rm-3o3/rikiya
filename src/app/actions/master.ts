@@ -2,6 +2,15 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+interface MasterDataRecord {
+    id: string;
+    tenant_id: string;
+    employee_id: string;
+    name: string;
+    email: string | null;
+    created_at: string;
+}
+
 // Fetch all participants for the company (Authenticated User)
 export async function getMasterData() {
     const supabase = await createClient();
@@ -25,17 +34,35 @@ export async function getMasterData() {
         return { data: [], error: 'TENANT_NOT_FOUND' };
     }
 
-    const { data, error } = await supabase
-        .from('master_data')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .order('created_at', { ascending: false });
+    // Fetch all data in batches to bypass 1000 row limit
+    const batchSize = 1000;
+    let allData: MasterDataRecord[] = [];
+    let offset = 0;
+    let hasMore = true;
 
-    if (error) {
-        console.error('Fetch Master Data Error:', error);
-        return { data: [], error: error.message, code: error.code };
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('master_data')
+            .select('*')
+            .eq('tenant_id', tenant.id)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + batchSize - 1);
+
+        if (error) {
+            console.error('Fetch Master Data Error:', error);
+            return { data: allData, error: error.message, code: error.code };
+        }
+
+        if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            offset += batchSize;
+            hasMore = data.length === batchSize; // Continue if we got a full batch
+        } else {
+            hasMore = false;
+        }
     }
-    return { data: data || [], error: null };
+
+    return { data: allData, error: null };
 }
 
 // Add single participant to company master
@@ -55,6 +82,7 @@ export async function addMasterDataRecord(formData: FormData) {
 
     const employeeId = formData.get('employee_id') as string;
     const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
 
     if (!employeeId || !name) {
         return { success: false, error: 'IDと名前は必須です。' };
@@ -64,7 +92,8 @@ export async function addMasterDataRecord(formData: FormData) {
     const { error } = await supabase.from('master_data').upsert({
         tenant_id: tenant.id,
         employee_id: employeeId,
-        name: name
+        name: name,
+        email: email || null
     }, { onConflict: 'tenant_id, employee_id' });
 
     if (error) {
@@ -76,7 +105,7 @@ export async function addMasterDataRecord(formData: FormData) {
 }
 
 // Bulk Import to company master
-export async function importMasterDataCSV(rows: { employee_id: string, name: string }[]) {
+export async function importMasterDataCSV(rows: { employee_id: string, name: string, email?: string }[]) {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -96,7 +125,8 @@ export async function importMasterDataCSV(rows: { employee_id: string, name: str
     const payload = rows.map(r => ({
         tenant_id: tenant.id,
         employee_id: r.employee_id,
-        name: r.name
+        name: r.name,
+        email: r.email || null
     }));
 
     // Get existing employee IDs to filter out duplicates

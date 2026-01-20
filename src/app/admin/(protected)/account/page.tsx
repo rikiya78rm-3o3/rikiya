@@ -3,12 +3,24 @@
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { User, Building2, Calendar, Key, Mail, Shield } from "lucide-react";
+import { User, Building2, Key, Mail, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getAccountInfo, updatePassword } from "@/app/actions/account";
 
+interface AccountInfo {
+    userId: string;
+    email?: string;
+    createdAt: string;
+    lastSignIn?: string;
+    tenant?: {
+        name: string;
+        company_code: string;
+        created_at: string;
+    } | null;
+}
+
 export default function AccountPage() {
-    const [accountInfo, setAccountInfo] = useState<any>(null);
+    const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -153,8 +165,8 @@ export default function AccountPage() {
 
                     {message && (
                         <div className={`p-4 rounded-lg text-sm ${message.type === 'success'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                             {message.text}
                         </div>
